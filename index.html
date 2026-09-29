@@ -256,6 +256,90 @@
         padding: 8px 3px
       }
     }
+
+    .progress-tabs {
+      display: flex;
+      gap: 7px;
+      margin: 12px 0 18px
+    }
+
+    .progress-tabs button {
+      flex: 1;
+      background: #eef3ed;
+      color: #294b3d;
+      padding: 10px 4px
+    }
+
+    .progress-tabs button[aria-pressed=true] {
+      background: #21634f;
+      color: #fff
+    }
+
+    .xp-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px
+    }
+
+    .xp-stat {
+      background: #f2f6f0;
+      border-radius: 14px;
+      padding: 14px
+    }
+
+    .xp-stat strong {
+      display: block;
+      font-size: 1.7rem;
+      margin: 6px 0
+    }
+
+    .xp-stat small {
+      color: #57766a
+    }
+
+    .xp-change {
+      font-weight: 750;
+      margin: 15px 0 5px
+    }
+
+    .xp-bars {
+      display: grid;
+      grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
+      gap: 7px;
+      align-items: end;
+      height: 142px;
+      margin: 20px 0 5px
+    }
+
+    .xp-bar-col {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: end;
+      min-width: 0;
+      gap: 5px
+    }
+
+    .xp-bar {
+      width: 100%;
+      max-width: 34px;
+      background: #78ae91;
+      border-radius: 6px 6px 2px 2px;
+      min-height: 2px
+    }
+
+    .xp-bar-label {
+      font-size: .68rem;
+      color: #52695d;
+      white-space: nowrap
+    }
+
+    .xp-legend {
+      color: #66796e;
+      font-size: .8rem;
+      margin: 12px 0 0
+    }
   </style>
 </head>
 
@@ -302,6 +386,21 @@
       </div>
     </section>
     <p role="status" aria-live="polite" id="status"></p>
+    <section class="panel" id="progressPanel">
+      <h2>📊 XP Progress</h2>
+      <p class="muted">See how your adventures add up over time.</p>
+      <div class="progress-tabs" id="progressTabs" aria-label="XP time period"><button type="button" data-period="week"
+          aria-pressed="true">Week</button><button type="button" data-period="month"
+          aria-pressed="false">Month</button><button type="button" data-period="year" aria-pressed="false">Year</button>
+      </div>
+      <div class="xp-stats">
+        <div class="xp-stat"><small id="currentLabel">This week</small><strong id="currentXP">0 XP</strong></div>
+        <div class="xp-stat"><small id="previousLabel">Last week</small><strong id="previousXP">0 XP</strong></div>
+      </div>
+      <p class="xp-change" id="xpChange"></p>
+      <div class="xp-bars" id="xpBars" aria-label="XP by time interval"></div>
+      <p class="xp-legend" id="xpLegend"></p>
+    </section>
     <section class="panel">
       <h2>📖 Quest log</h2>
       <p class="muted" id="count">0 adventures completed</p>
@@ -345,7 +444,18 @@
         ['Green Escape', 'Find a patch of greenery along an otherwise urban route.', 'observe', 35, 'bike run walk'],
         ['A Different Ending', 'Finish your planned route by approaching your destination from a different safe direction.', 'challenge', 40, 'walk run bike']
       ].map((q, i) => ({ id: i + 1, title: q[0], description: q[1], category: q[2], xp: q[3], activities: q[4].split(' ') }));
-      const $ = id => document.getElementById(id), key = 'sidequest-v01', safe = () => ({ xp: 0, history: [], current: null }); let data; try { data = { ...safe(), ...JSON.parse(localStorage.getItem(key) || '{}') }; if (!Array.isArray(data.history)) data.history = []; if (!Number.isFinite(data.xp)) data.xp = 0 } catch { data = safe() } let activity = 'run', category = 'any', candidate = null; const save = () => { try { localStorage.setItem(key, JSON.stringify(data)) } catch { $('status').textContent = 'Storage is unavailable; progress may not be saved.' } }; function select(container, attr, value) { document.querySelectorAll('#' + container + ' button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset[attr] === value))) } function render() { $('xp').textContent = '⭐ ' + data.xp + ' XP'; $('count').textContent = data.history.length + ' adventure' + (data.history.length === 1 ? '' : 's') + ' completed'; $('history').replaceChildren(); if (!data.history.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Your adventures will appear here.'; $('history').append(li) } for (const h of data.history.slice().reverse().slice(0, 20)) { const li = document.createElement('li'), strong = document.createElement('strong'), small = document.createElement('small'); strong.textContent = h.title + ' · +' + h.xp + ' XP'; small.textContent = new Date(h.date).toLocaleDateString() + ' · ' + h.activity + (h.note ? ' · ' + h.note : ''); li.append(strong, small); $('history').append(li) } candidate = data.current?.quest || candidate; $('questSection').hidden = !candidate; if (candidate) { $('questTitle').textContent = candidate.title; $('questDescription').textContent = candidate.description; $('questCategory').textContent = candidate.category.toUpperCase(); $('questXp').textContent = '⭐ +' + candidate.xp + ' XP'; $('unaccepted').hidden = !!data.current; $('accepted').hidden = !data.current; $('questState').textContent = data.current ? 'Quest in progress' : 'Your next mission'; $('generate').textContent = data.current ? 'View active quest ↓' : 'Give me a quest →'; if (data.current) { $('note').value = data.current.note || '' } } } function generate() { if (data.current) { $('questSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return } let pool = quests.filter(q => q.activities.includes(activity) && (category === 'any' || q.category === category)); if (!pool.length) { $('status').textContent = 'No quests available for that combination.'; return } let eligible = pool.filter(q => q.id !== candidate?.id && !data.history.slice(-5).some(h => h.id === q.id)); if (!eligible.length) eligible = pool.filter(q => q.id !== candidate?.id); if (!eligible.length) eligible = pool; candidate = eligible[Math.floor(Math.random() * eligible.length)]; $('status').textContent = ''; render(); $('questSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' }) } document.querySelectorAll('#activities button').forEach(b => b.addEventListener('click', () => { activity = b.dataset.activity; select('activities', 'activity', activity) })); document.querySelectorAll('#categories button').forEach(b => b.addEventListener('click', () => { category = b.dataset.category; select('categories', 'category', category) })); $('generate').addEventListener('click', generate); $('reroll').addEventListener('click', generate); $('accept').addEventListener('click', () => { if (!candidate) return; data.current = { quest: candidate, activity, note: '' }; save(); render() }); $('note').addEventListener('input', () => { if (data.current) { data.current.note = $('note').value; save() } }); $('complete').addEventListener('click', () => { if (!data.current) return; const { quest, activity: doneActivity, note } = data.current; data.history.push({ id: quest.id, title: quest.title, xp: quest.xp, activity: doneActivity, note: note.trim(), date: new Date().toISOString() }); data.xp += quest.xp; data.current = null; candidate = null; save(); render(); $('status').textContent = '🎉 Quest complete! +' + quest.xp + ' XP'; $('status').scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }); $('abandon').addEventListener('click', () => { data.current = null; candidate = null; save(); render(); $('status').textContent = 'Quest skipped. Pick another whenever you’re ready.' }); render(); if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => { });
+      const $ = id => document.getElementById(id), key = 'sidequest-v01', safe = () => ({ xp: 0, history: [], current: null }); let data; try { data = { ...safe(), ...JSON.parse(localStorage.getItem(key) || '{}') }; if (!Array.isArray(data.history)) data.history = []; if (!Number.isFinite(data.xp)) data.xp = 0 } catch { data = safe() } let activity = 'run', category = 'any', candidate = null; const save = () => { try { localStorage.setItem(key, JSON.stringify(data)) } catch { $('status').textContent = 'Storage is unavailable; progress may not be saved.' } }; function select(container, attr, value) { document.querySelectorAll('#' + container + ' button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset[attr] === value))) } let progressPeriod = 'week';
+      function startOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()) }
+      function startOfPeriod(date, period) { const d = startOfDay(date); if (period === 'week') d.setDate(d.getDate() - (d.getDay() + 6) % 7); else if (period === 'month') d.setDate(1); else { d.setMonth(0, 1) } return d }
+      function nextPeriod(date, period) { const d = new Date(date); if (period === 'week') d.setDate(d.getDate() + 7); else if (period === 'month') d.setMonth(d.getMonth() + 1); else d.setFullYear(d.getFullYear() + 1); return d }
+      function getHistoryXP(from, to) { return data.history.reduce((sum, h) => { const date = new Date(h.date); return sum + (Number.isFinite(date.getTime()) && date >= from && date < to && Number.isFinite(Number(h.xp)) ? Number(h.xp) : 0) }, 0) }
+      function renderProgress() {
+        const now = new Date(), start = startOfPeriod(now, progressPeriod), end = nextPeriod(start, progressPeriod), previous = startOfPeriod(new Date(start.getTime() - 1), progressPeriod); const current = getHistoryXP(start, end), prior = getHistoryXP(previous, start); const label = progressPeriod; $('currentLabel').textContent = 'This ' + label; $('previousLabel').textContent = 'Last ' + label; $('currentXP').textContent = current + ' XP'; $('previousXP').textContent = prior + ' XP'; const diff = current - prior; $('xpChange').textContent = prior === 0 ? (current ? 'You earned ' + current + ' XP so far!' : 'Complete a quest to start earning XP.') : diff > 0 ? '↑ ' + diff + ' XP ahead of last ' + label : diff < 0 ? '↓ ' + Math.abs(diff) + ' XP behind last ' + label : 'Tied with last ' + label + '!';
+        let buckets = []; if (label === 'week') { for (let i = 0; i < 7; i++) { const a = new Date(start); a.setDate(a.getDate() + i); const b = new Date(a); b.setDate(b.getDate() + 1); buckets.push({ name: ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i], xp: getHistoryXP(a, b) }) } } else if (label === 'month') { let a = new Date(start), i = 1; while (a < end) { const b = new Date(a); b.setDate(b.getDate() + 7); if (b > end) b.setTime(end.getTime()); buckets.push({ name: 'W' + i++, xp: getHistoryXP(a, b) }); a = b } } else { for (let i = 0; i < 12; i++) { const a = new Date(start.getFullYear(), i, 1), b = new Date(start.getFullYear(), i + 1, 1); buckets.push({ name: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'][i], xp: getHistoryXP(a, b) }) } }
+        const chart = $('xpBars'); chart.replaceChildren(); chart.style.setProperty('--bar-count', buckets.length); const max = Math.max(1, ...buckets.map(b => b.xp)); for (const b of buckets) { const col = document.createElement('div'); col.className = 'xp-bar-col'; const bar = document.createElement('div'); bar.className = 'xp-bar'; bar.style.height = (b.xp ? Math.max(3, b.xp / max * 105) : 2) + 'px'; bar.title = b.name + ': ' + b.xp + ' XP'; const text = document.createElement('span'); text.className = 'xp-bar-label'; text.textContent = b.name; col.append(bar, text); chart.append(col) } $('xpLegend').textContent = label === 'week' ? 'Monday–Sunday · Current week' : label === 'month' ? 'Weekly totals · Current month' : 'Monthly totals · Current year'; document.querySelectorAll('#progressTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.period === label)))
+      }
+      document.querySelectorAll('#progressTabs button').forEach(b => b.addEventListener('click', () => { progressPeriod = b.dataset.period; renderProgress() }));
+      function render() { renderProgress(); $('xp').textContent = '⭐ ' + data.xp + ' XP'; $('count').textContent = data.history.length + ' adventure' + (data.history.length === 1 ? '' : 's') + ' completed'; $('history').replaceChildren(); if (!data.history.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Your adventures will appear here.'; $('history').append(li) } for (const h of data.history.slice().reverse().slice(0, 20)) { const li = document.createElement('li'), strong = document.createElement('strong'), small = document.createElement('small'); strong.textContent = h.title + ' · +' + h.xp + ' XP'; small.textContent = new Date(h.date).toLocaleDateString() + ' · ' + h.activity + (h.note ? ' · ' + h.note : ''); li.append(strong, small); $('history').append(li) } candidate = data.current?.quest || candidate; $('questSection').hidden = !candidate; if (candidate) { $('questTitle').textContent = candidate.title; $('questDescription').textContent = candidate.description; $('questCategory').textContent = candidate.category.toUpperCase(); $('questXp').textContent = '⭐ +' + candidate.xp + ' XP'; $('unaccepted').hidden = !!data.current; $('accepted').hidden = !data.current; $('questState').textContent = data.current ? 'Quest in progress' : 'Your next mission'; $('generate').textContent = data.current ? 'View active quest ↓' : 'Give me a quest →'; if (data.current) { $('note').value = data.current.note || '' } } } function generate() { if (data.current) { $('questSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return } let pool = quests.filter(q => q.activities.includes(activity) && (category === 'any' || q.category === category)); if (!pool.length) { $('status').textContent = 'No quests available for that combination.'; return } let eligible = pool.filter(q => q.id !== candidate?.id && !data.history.slice(-5).some(h => h.id === q.id)); if (!eligible.length) eligible = pool.filter(q => q.id !== candidate?.id); if (!eligible.length) eligible = pool; candidate = eligible[Math.floor(Math.random() * eligible.length)]; $('status').textContent = ''; render(); $('questSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' }) } document.querySelectorAll('#activities button').forEach(b => b.addEventListener('click', () => { activity = b.dataset.activity; select('activities', 'activity', activity) })); document.querySelectorAll('#categories button').forEach(b => b.addEventListener('click', () => { category = b.dataset.category; select('categories', 'category', category) })); $('generate').addEventListener('click', generate); $('reroll').addEventListener('click', generate); $('accept').addEventListener('click', () => { if (!candidate) return; data.current = { quest: candidate, activity, note: '' }; save(); render() }); $('note').addEventListener('input', () => { if (data.current) { data.current.note = $('note').value; save() } }); $('complete').addEventListener('click', () => { if (!data.current) return; const { quest, activity: doneActivity, note } = data.current; data.history.push({ id: quest.id, title: quest.title, xp: quest.xp, activity: doneActivity, note: note.trim(), date: new Date().toISOString() }); data.xp += quest.xp; data.current = null; candidate = null; save(); render(); $('status').textContent = '🎉 Quest complete! +' + quest.xp + ' XP'; $('status').scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }); $('abandon').addEventListener('click', () => { data.current = null; candidate = null; save(); render(); $('status').textContent = 'Quest skipped. Pick another whenever you’re ready.' }); render(); if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => { });
     })();
   </script>
 </body>

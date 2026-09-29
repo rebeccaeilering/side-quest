@@ -1,1 +1,18 @@
-{"name":"Side Quest","short_name":"Side Quest","description":"Little adventures for everyday runs, rides and walks","start_url":"./","scope":"./","display":"standalone","background_color":"#f5f3eb","theme_color":"#183c35","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "Side Quest",
+  "short_name": "Side Quest",
+  "description": "Little adventures for everyday runs, rides and walks",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f3eb",
+  "theme_color": "#183c35",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

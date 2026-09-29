@@ -13,3 +13,7 @@ Progress is stored in localStorage on each browser/device; clearing browser site
 ## Editing quests
 
 Edit the `quests` array near the bottom of `index.html`. Each entry is `[title, description, category, xp, "space-separated activities"]`.
+
+
+## XP Progress dashboard
+The dashboard shows this week/month/year compared with the previous completed period and charts XP from completed quest timestamps. Weeks begin Monday. It uses the existing localStorage key so current quest history and XP are preserved on the same browser and domain.
